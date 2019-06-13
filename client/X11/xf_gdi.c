@@ -929,11 +929,6 @@ static void xf_gdi_surface_update_frame(xfContext* xfc, UINT16 tx, UINT16 ty, UI
 	}
 }
 
-#define FIXED_XORG16
-#define RGB888_RED      0x00ff0000
-#define RGB888_GREEN    0x0000ff00
-#define RGB888_BLUE     0x000000ff
-
 void xf_gdi_surface_bits(rdpContext* context, SURFACE_BITS_COMMAND* surface_bits_command)
 {
 	int i, tx, ty;
@@ -961,22 +956,27 @@ void xf_gdi_surface_bits(rdpContext* context, SURFACE_BITS_COMMAND* surface_bits
 		for (i = 0; i < message->num_tiles; i++)
 		{
 			#ifdef FIXED_XORG16	
+			#define RGB888_RED      0x00ff0000
+			#define RGB888_GREEN    0x0000ff00
+			#define RGB888_BLUE     0x000000ff
 			if(xfc->depth == 16) {
 				char *srcData = (char*) message->tiles[i]->data;
+				struct RGB565{
+					unsigned short r:5;
+					unsigned short g:6;
+					unsigned short b:5;
+				} *n565Color;
+		        unsigned int *data;
+				int i,j;
 				
-		        unsigned int data;
-	            unsigned char cRed, cGreen, cBlue;
-				unsigned short n565Color;
-		        for(int j = 0; j < 64; j++) {
-		            for(int i = 0; i < 64; i++) {
-						data = *(unsigned int *)(srcData+j*64*4+i*4);
+		        for(j = 0; j < 64; j++) {
+		            for(i = 0; i < 64; i++) {
+						data = (unsigned int *)(srcData+j*64*4+i*4);
+						n565Color = (struct RGB565*)(srcData+j*64*2+i*2);
 
-		                cRed   = (data & RGB888_RED)   >> 19;
-		                cGreen = (data & RGB888_GREEN) >> 10;
-		                cBlue  = (data & RGB888_BLUE)  >> 3;
-
-		                n565Color = (cRed << 11) + (cGreen << 5) + (cBlue << 0);
-						*(unsigned short*)(srcData+j*64*2+i*2) = n565Color;
+		                n565Color->b = (*data & RGB888_RED)   >> 19;
+		                n565Color->g = (*data & RGB888_GREEN) >> 10;
+		                n565Color->r = (*data & RGB888_BLUE)  >> 3;
 		            }
 		        }
 			}
