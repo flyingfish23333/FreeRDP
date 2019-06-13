@@ -929,6 +929,11 @@ static void xf_gdi_surface_update_frame(xfContext* xfc, UINT16 tx, UINT16 ty, UI
 	}
 }
 
+#define FIXED_XORG16
+#define RGB888_RED      0x00ff0000
+#define RGB888_GREEN    0x0000ff00
+#define RGB888_BLUE     0x000000ff
+
 void xf_gdi_surface_bits(rdpContext* context, SURFACE_BITS_COMMAND* surface_bits_command)
 {
 	int i, tx, ty;
@@ -939,7 +944,7 @@ void xf_gdi_surface_bits(rdpContext* context, SURFACE_BITS_COMMAND* surface_bits
 	NSC_CONTEXT* nsc_context = (NSC_CONTEXT*) xfc->nsc_context;
 
 	xf_lock_x11(xfc, FALSE);
-
+	
 	if (surface_bits_command->codecID == RDP_CODEC_ID_REMOTEFX)
 	{
 		message = rfx_process_message(rfx_context,
@@ -955,8 +960,33 @@ void xf_gdi_surface_bits(rdpContext* context, SURFACE_BITS_COMMAND* surface_bits
 		/* Draw the tiles to primary surface, each is 64x64. */
 		for (i = 0; i < message->num_tiles; i++)
 		{
+			#ifdef FIXED_XORG16	
+			if(xfc->depth == 16) {
+				char *srcData = (char*) message->tiles[i]->data;
+				
+		        unsigned int data;
+	            unsigned char cRed, cGreen, cBlue;
+				unsigned short n565Color;
+		        for(int j = 0; j < 64; j++) {
+		            for(int i = 0; i < 64; i++) {
+						data = *(unsigned int *)(srcData+j*64*4+i*4);
+
+		                cRed   = (data & RGB888_RED)   >> 19;
+		                cGreen = (data & RGB888_GREEN) >> 10;
+		                cBlue  = (data & RGB888_BLUE)  >> 3;
+
+		                n565Color = (cRed << 11) + (cGreen << 5) + (cBlue << 0);
+						*(unsigned short*)(srcData+j*64*2+i*2) = n565Color;
+		            }
+		        }
+			}
+			
+			image = XCreateImage(xfc->display, xfc->visual, xfc->depth, ZPixmap, 0,
+				(char*) message->tiles[i]->data, 64, 64, xfc->scanline_pad,  0);
+			#else
 			image = XCreateImage(xfc->display, xfc->visual, 24, ZPixmap, 0,
 				(char*) message->tiles[i]->data, 64, 64, 32, 0);
+			#endif
 
 			tx = message->tiles[i]->x + surface_bits_command->destLeft;
 			ty = message->tiles[i]->y + surface_bits_command->destTop;

@@ -429,6 +429,9 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 add_definitions("-DHAVE_CONFIG_H")
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.in ${CMAKE_CURRENT_BINARY_DIR}/config.h)
 
+# add by shr
+add_definitions(-DFIXED_XORG16)
+
 # RPATH configuration
 set(CMAKE_SKIP_BUILD_RPATH FALSE)
 set(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
