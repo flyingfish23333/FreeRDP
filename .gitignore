@@ -20,7 +20,7 @@ include/freerdp/version.h
 # Packages
 *.zip
 *.exe
-*.sh
+#*.sh
 *.deb
 *.rpm
 *.tar.Z
